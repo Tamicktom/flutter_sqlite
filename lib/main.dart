@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
+import "./drawer.dart";
 
 void main() => runApp(const MyApp());
 
@@ -71,10 +72,11 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('SQLite in Flutter'),
+        title: const Text('SQLite com Flutter'),
       ),
+      drawer: const DrawerWidget(),
       body: Padding(
-        padding: const EdgeInsets.all(16.0),
+        padding: const EdgeInsets.all(8.0),
         child: Column(
           children: [
             TextField(
@@ -100,7 +102,7 @@ class _HomeScreenState extends State<HomeScreen> {
               },
               child: const Text('Add User'),
             ),
-            const SizedBox(height: 16.0),
+            const SizedBox(height: 8.0),
             Expanded(
               child: FutureBuilder<List<Map<String, dynamic>>>(
                 future: database.then(_getUsers),
