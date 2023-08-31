@@ -1,60 +1,113 @@
 //* Libraries imports
 import 'package:flutter/material.dart';
+import 'package:sqflite/sqflite.dart';
+import 'package:path/path.dart';
 
-//* Local imports
-import "package:app_crud_sqlite/db.dart";
-import "package:app_crud_sqlite/addproduct.dart";
+//* Components imports
+import "./drawer.dart";
+import "db.dart";
 
-void main() {
-  runApp(const MyApp());
-}
+void main() => runApp(const MyApp());
 
 class MyApp extends StatelessWidget {
   const MyApp({Key? key}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      debugShowCheckedModeBanner: false,
-      themeMode: ThemeMode.system,
-      theme: ThemeData(primarySwatch: Colors.purple),
-      home: const Home(),
+    return const MaterialApp(
+      title: 'SQLite in Flutter',
+      home: HomeScreen(),
     );
   }
 }
 
-class Home extends StatefulWidget {
-  const Home({Key? key}) : super(key: key);
+class HomeScreen extends StatefulWidget {
+  const HomeScreen({Key? key}) : super(key: key);
 
   @override
-  State<Home> createState() => _HomeState();
+  _HomeScreenState createState() => _HomeScreenState();
 }
 
-class _HomeState extends State<Home> {
+class _HomeScreenState extends State<HomeScreen> {
+  late Future<Database> database;
+
+  @override
+  void initState() {
+    super.initState();
+    // Open the database when the app starts
+    database = _openDatabase();
+  }
+
+  Future<Database> _openDatabase() async {
+    // Get a location using getDatabasesPath
+    String databasesPath = await getDatabasesPath();
+    String dbPath = join(databasesPath, 'my_database.db');
+
+    // Open the database with the path and a version
+    return await openDatabase(dbPath, version: 1, onCreate: _onCreate);
+  }
+
+  Future<void> _onCreate(Database db, int version) async {
+    // Create the table
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS users(
+        id INTEGER PRIMARY KEY,
+        name TEXT,
+        age INTEGER
+      )
+    ''');
+  }
+
+  Future<void> _insertUser(Database db, String name, int age) async {
+    await db.insert(
+      'users',
+      {'name': name, 'age': age},
+      conflictAlgorithm: ConflictAlgorithm.replace,
+    );
+  }
+
+  Future<List<Map<String, dynamic>>> _getUsers(Database db) async {
+    return await db.query('users');
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text("AppCrudSQLITE"),
+        title: const Text('SQLite com Flutter'),
       ),
-      body: Container(
-        alignment: Alignment.topCenter,
-        padding: const EdgeInsets.all(20),
-        child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-          ElevatedButton(
-            onPressed: () {
-              Navigator.push(context,
-                  MaterialPageRoute(builder: (context) => const AddProduct()));
-            },
-            child: const Text("Adicionar"),
-          ),
-          const SizedBox(height: 40),
-          ElevatedButton(
-            onPressed: () {},
-            child: const Text("Listar"),
-          ),
-          const AddProduct()
-        ]),
+      drawer: const DrawerWidget(),
+      body: Padding(
+        padding: const EdgeInsets.all(8.0),
+        child: Column(
+          children: [
+            const Inputs(),
+            const SizedBox(height: 8.0),
+            Expanded(
+              child: FutureBuilder<List<Map<String, dynamic>>>(
+                future: database.then(_getUsers),
+                builder: (context, snapshot) {
+                  if (snapshot.connectionState == ConnectionState.waiting) {
+                    return const CircularProgressIndicator();
+                  } else if (snapshot.hasError) {
+                    return Text('Error: ${snapshot.error}');
+                  } else {
+                    final users = snapshot.data ?? [];
+                    return ListView.builder(
+                      itemCount: users.length,
+                      itemBuilder: (context, index) {
+                        return ListTile(
+                          title: Text(users[index]['name']),
+                          subtitle: Text('Age: ${users[index]['age']}'),
+                        );
+                      },
+                    );
+                  }
+                },
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
