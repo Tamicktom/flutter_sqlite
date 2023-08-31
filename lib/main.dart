@@ -1,11 +1,8 @@
-//* Libraries imports
 import 'package:flutter/material.dart';
 import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
 
-//* Components imports
-import "./drawer.dart";
-import "db.dart";
+import 'drawer.dart';
 
 void main() => runApp(const MyApp());
 
@@ -14,9 +11,10 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const MaterialApp(
+    return MaterialApp(
+      theme: ThemeData(primarySwatch: Colors.deepPurple),
       title: 'SQLite in Flutter',
-      home: HomeScreen(),
+      home: const HomeScreen(),
     );
   }
 }
@@ -31,6 +29,7 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   TextEditingController nameController = TextEditingController();
   TextEditingController ageController = TextEditingController();
+  String gender = 'Male'; // Default gender value
 
   late Future<Database> database;
 
@@ -42,29 +41,40 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Future<Database> _openDatabase() async {
-    // Get a location using getDatabasesPath
     String databasesPath = await getDatabasesPath();
     String dbPath = join(databasesPath, 'my_database.db');
 
-    // Open the database with the path and a version
-    return await openDatabase(dbPath, version: 1, onCreate: _onCreate);
+    return await openDatabase(
+      dbPath,
+      version: 2, // Increase the version to trigger migration
+      onCreate: _onCreate,
+      onUpgrade: _onUpgrade, // Call the onUpgrade method
+    );
   }
 
   Future<void> _onCreate(Database db, int version) async {
-    // Create the table
+    // Create the table without the 'gender' column
     await db.execute('''
-      CREATE TABLE IF NOT EXISTS users(
-        id INTEGER PRIMARY KEY,
-        name TEXT,
-        age INTEGER
-      )
-    ''');
+    CREATE TABLE IF NOT EXISTS users(
+      id INTEGER PRIMARY KEY,
+      name TEXT,
+      age INTEGER
+    )
+  ''');
   }
 
-  Future<void> _insertUser(Database db, String name, int age) async {
+  Future<void> _onUpgrade(Database db, int oldVersion, int newVersion) async {
+    if (oldVersion < 2) {
+      // Add the 'gender' column to the existing table
+      await db.execute('ALTER TABLE users ADD COLUMN gender TEXT');
+    }
+  }
+
+  Future<void> _insertUser(
+      Database db, String name, int age, String gender) async {
     await db.insert(
       'users',
-      {'name': name, 'age': age},
+      {'name': name, 'age': age, 'gender': gender},
       conflictAlgorithm: ConflictAlgorithm.replace,
     );
   }
@@ -95,14 +105,31 @@ class _HomeScreenState extends State<HomeScreen> {
               keyboardType: TextInputType.number,
             ),
             const SizedBox(height: 16.0),
+            DropdownButton<String>(
+              value: gender,
+              onChanged: (String? newValue) {
+                setState(() {
+                  gender = newValue!;
+                });
+              },
+              items: <String>['Male', 'Female', 'Other']
+                  .map<DropdownMenuItem<String>>((String value) {
+                return DropdownMenuItem<String>(
+                  value: value,
+                  child: Text(value),
+                );
+              }).toList(),
+            ),
+            const SizedBox(height: 16.0),
             ElevatedButton(
               onPressed: () {
                 final name = nameController.text;
                 final age = int.tryParse(ageController.text) ?? 0;
-                database.then((db) => _insertUser(db, name, age));
+                database.then((db) => _insertUser(db, name, age, gender));
                 setState(() {
                   nameController.clear();
                   ageController.clear();
+                  gender = 'Male'; // Reset gender to default after insertion
                 });
               },
               child: const Text('Add User'),
@@ -123,7 +150,8 @@ class _HomeScreenState extends State<HomeScreen> {
                       itemBuilder: (context, index) {
                         return ListTile(
                           title: Text(users[index]['name']),
-                          subtitle: Text('Age: ${users[index]['age']}'),
+                          subtitle: Text(
+                              'Age: ${users[index]['age']}, Gender: ${users[index]['gender']}'),
                         );
                       },
                     );
