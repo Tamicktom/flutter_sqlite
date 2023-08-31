@@ -3,6 +3,7 @@ import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
 
 import 'drawer.dart';
+import "./edit_screen.dart";
 
 void main() => runApp(const MyApp());
 
@@ -148,10 +149,20 @@ class _HomeScreenState extends State<HomeScreen> {
                     return ListView.builder(
                       itemCount: users.length,
                       itemBuilder: (context, index) {
+                        final user = users[index];
+                        final userName = user['name'];
+                        final userAge = user['age'];
+                        final userGender = user['gender'] ??
+                            ''; // Use an empty string if gender is null
+
                         return ListTile(
-                          title: Text(users[index]['name']),
-                          subtitle: Text(
-                              'Age: ${users[index]['age']}, Gender: ${users[index]['gender']}'),
+                          title: Text(userName),
+                          subtitle: Text('Age: $userAge, Gender: $userGender'),
+                          trailing: EditButton(
+                            name: userName,
+                            age: userAge,
+                            gender: userGender,
+                          ),
                         );
                       },
                     );
@@ -162,6 +173,37 @@ class _HomeScreenState extends State<HomeScreen> {
           ],
         ),
       ),
+    );
+  }
+}
+
+class EditButton extends StatelessWidget {
+  final String name;
+  final int age;
+  final String gender;
+
+  const EditButton({
+    required this.name,
+    required this.age,
+    required this.gender,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return ElevatedButton(
+      onPressed: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => EditScreen(
+              name: name,
+              age: age,
+              gender: gender,
+            ),
+          ),
+        );
+      },
+      child: const Text('Edit'),
     );
   }
 }
