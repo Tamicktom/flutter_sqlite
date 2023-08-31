@@ -29,6 +29,9 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
+  TextEditingController nameController = TextEditingController();
+  TextEditingController ageController = TextEditingController();
+
   late Future<Database> database;
 
   @override
@@ -81,7 +84,29 @@ class _HomeScreenState extends State<HomeScreen> {
         padding: const EdgeInsets.all(8.0),
         child: Column(
           children: [
-            const Inputs(),
+            TextField(
+              controller: nameController,
+              decoration: const InputDecoration(labelText: 'Name'),
+            ),
+            const SizedBox(height: 16.0),
+            TextField(
+              controller: ageController,
+              decoration: const InputDecoration(labelText: 'Age'),
+              keyboardType: TextInputType.number,
+            ),
+            const SizedBox(height: 16.0),
+            ElevatedButton(
+              onPressed: () {
+                final name = nameController.text;
+                final age = int.tryParse(ageController.text) ?? 0;
+                database.then((db) => _insertUser(db, name, age));
+                setState(() {
+                  nameController.clear();
+                  ageController.clear();
+                });
+              },
+              child: const Text('Add User'),
+            ),
             const SizedBox(height: 8.0),
             Expanded(
               child: FutureBuilder<List<Map<String, dynamic>>>(
