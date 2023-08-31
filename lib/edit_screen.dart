@@ -1,30 +1,36 @@
-// edit_screen.dart
 import 'package:flutter/material.dart';
+import 'db.dart';
 
 class EditScreen extends StatefulWidget {
-  final String name;
-  final int age;
-  final String gender;
+  final int id;
 
-  const EditScreen(
-      {required this.name, required this.age, required this.gender});
+  const EditScreen({required this.id});
 
   @override
   _EditScreenState createState() => _EditScreenState();
 }
 
 class _EditScreenState extends State<EditScreen> {
+  final DatabaseHelper dbHelper = DatabaseHelper();
+  late String name;
+  late int age;
+  late String selectedGender = 'Male'; // Initialize with an empty string
   TextEditingController nameController = TextEditingController();
   TextEditingController ageController = TextEditingController();
-  String selectedGender = '';
 
   @override
   void initState() {
     super.initState();
-    nameController.text = widget.name;
-    ageController.text = widget.age.toString();
-    selectedGender =
-        widget.gender ?? ''; // Use an empty string if gender is null
+    _fetchUserDetails();
+  }
+
+  Future<void> _fetchUserDetails() async {
+    final user = await dbHelper.getUser(widget.id);
+    name = user['name'];
+    age = user['age'];
+    selectedGender = user['gender'] ?? '';
+    nameController.text = name;
+    ageController.text = age.toString();
   }
 
   @override
@@ -65,8 +71,12 @@ class _EditScreenState extends State<EditScreen> {
             ),
             const SizedBox(height: 16.0),
             ElevatedButton(
-              onPressed: () {
-                // Add logic to update the user in the database here
+              onPressed: () async {
+                final updatedName = nameController.text;
+                final updatedAge = int.tryParse(ageController.text) ?? 0;
+                await dbHelper.updateUser(
+                    widget.id, updatedName, updatedAge, selectedGender);
+                Navigator.pop(context); // Navigate back after updating
               },
               child: const Text('Save'),
             ),

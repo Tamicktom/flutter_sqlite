@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:sqflite/sqflite.dart';
-import 'package:path/path.dart';
-
 import 'drawer.dart';
+import 'db.dart';
 import "./edit_screen.dart";
 
 void main() => runApp(const MyApp());
@@ -28,61 +26,11 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
+  final DatabaseHelper dbHelper = DatabaseHelper();
+
   TextEditingController nameController = TextEditingController();
   TextEditingController ageController = TextEditingController();
   String gender = 'Male'; // Default gender value
-
-  late Future<Database> database;
-
-  @override
-  void initState() {
-    super.initState();
-    // Open the database when the app starts
-    database = _openDatabase();
-  }
-
-  Future<Database> _openDatabase() async {
-    String databasesPath = await getDatabasesPath();
-    String dbPath = join(databasesPath, 'my_database.db');
-
-    return await openDatabase(
-      dbPath,
-      version: 2, // Increase the version to trigger migration
-      onCreate: _onCreate,
-      onUpgrade: _onUpgrade, // Call the onUpgrade method
-    );
-  }
-
-  Future<void> _onCreate(Database db, int version) async {
-    // Create the table without the 'gender' column
-    await db.execute('''
-    CREATE TABLE IF NOT EXISTS users(
-      id INTEGER PRIMARY KEY,
-      name TEXT,
-      age INTEGER
-    )
-  ''');
-  }
-
-  Future<void> _onUpgrade(Database db, int oldVersion, int newVersion) async {
-    if (oldVersion < 2) {
-      // Add the 'gender' column to the existing table
-      await db.execute('ALTER TABLE users ADD COLUMN gender TEXT');
-    }
-  }
-
-  Future<void> _insertUser(
-      Database db, String name, int age, String gender) async {
-    await db.insert(
-      'users',
-      {'name': name, 'age': age, 'gender': gender},
-      conflictAlgorithm: ConflictAlgorithm.replace,
-    );
-  }
-
-  Future<List<Map<String, dynamic>>> _getUsers(Database db) async {
-    return await db.query('users');
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -123,22 +71,24 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
             const SizedBox(height: 16.0),
             ElevatedButton(
-              onPressed: () {
+              onPressed: () async {
                 final name = nameController.text;
                 final age = int.tryParse(ageController.text) ?? 0;
-                database.then((db) => _insertUser(db, name, age, gender));
-                setState(() {
-                  nameController.clear();
-                  ageController.clear();
-                  gender = 'Male'; // Reset gender to default after insertion
-                });
+                final result = await dbHelper.insertUser(name, age, gender);
+                if (result != null && result > 0) {
+                  setState(() {
+                    nameController.clear();
+                    ageController.clear();
+                    gender = 'Male';
+                  });
+                }
               },
               child: const Text('Add User'),
             ),
             const SizedBox(height: 8.0),
             Expanded(
               child: FutureBuilder<List<Map<String, dynamic>>>(
-                future: database.then(_getUsers),
+                future: dbHelper.getUsers(),
                 builder: (context, snapshot) {
                   if (snapshot.connectionState == ConnectionState.waiting) {
                     return const CircularProgressIndicator();
@@ -152,16 +102,12 @@ class _HomeScreenState extends State<HomeScreen> {
                         final user = users[index];
                         final userName = user['name'];
                         final userAge = user['age'];
-                        final userGender = user['gender'] ??
-                            ''; // Use an empty string if gender is null
-
+                        final userGender = user['gender'] ?? '';
                         return ListTile(
                           title: Text(userName),
                           subtitle: Text('Age: $userAge, Gender: $userGender'),
                           trailing: EditButton(
-                            name: userName,
-                            age: userAge,
-                            gender: userGender,
+                            id: user['id'],
                           ),
                         );
                       },
@@ -178,14 +124,10 @@ class _HomeScreenState extends State<HomeScreen> {
 }
 
 class EditButton extends StatelessWidget {
-  final String name;
-  final int age;
-  final String gender;
+  final int id;
 
   const EditButton({
-    required this.name,
-    required this.age,
-    required this.gender,
+    required this.id,
   });
 
   @override
@@ -196,9 +138,7 @@ class EditButton extends StatelessWidget {
           context,
           MaterialPageRoute(
             builder: (context) => EditScreen(
-              name: name,
-              age: age,
-              gender: gender,
+              id: id,
             ),
           ),
         );
