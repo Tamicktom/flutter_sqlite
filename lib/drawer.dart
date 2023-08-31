@@ -9,7 +9,15 @@ class DrawerWidget extends StatelessWidget {
       height: MediaQuery.of(context).size.height,
       width: MediaQuery.of(context).size.width * 0.8,
       color: Colors.white,
-      child: const Text('Drawer Header'),
+      child: Column(
+        children: [
+          ElevatedButton(onPressed: () => {}, child: const Text("Botão")),
+          ElevatedButton(onPressed: () => {}, child: const Text("Botão")),
+          ElevatedButton(onPressed: () => {}, child: const Text("Botão")),
+          ElevatedButton(onPressed: () => {}, child: const Text("Botão")),
+          ElevatedButton(onPressed: () => {}, child: const Text("Botão")),
+        ],
+      ),
     );
   }
 }

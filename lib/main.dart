@@ -1,7 +1,11 @@
+//* Libraries imports
 import 'package:flutter/material.dart';
 import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
+
+//* Components imports
 import "./drawer.dart";
+import "db.dart";
 
 void main() => runApp(const MyApp());
 
@@ -26,8 +30,6 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   late Future<Database> database;
-  TextEditingController nameController = TextEditingController();
-  TextEditingController ageController = TextEditingController();
 
   @override
   void initState() {
@@ -79,29 +81,7 @@ class _HomeScreenState extends State<HomeScreen> {
         padding: const EdgeInsets.all(8.0),
         child: Column(
           children: [
-            TextField(
-              controller: nameController,
-              decoration: const InputDecoration(labelText: 'Name'),
-            ),
-            const SizedBox(height: 16.0),
-            TextField(
-              controller: ageController,
-              decoration: const InputDecoration(labelText: 'Age'),
-              keyboardType: TextInputType.number,
-            ),
-            const SizedBox(height: 16.0),
-            ElevatedButton(
-              onPressed: () {
-                final name = nameController.text;
-                final age = int.tryParse(ageController.text) ?? 0;
-                database.then((db) => _insertUser(db, name, age));
-                setState(() {
-                  nameController.clear();
-                  ageController.clear();
-                });
-              },
-              child: const Text('Add User'),
-            ),
+            const Inputs(),
             const SizedBox(height: 8.0),
             Expanded(
               child: FutureBuilder<List<Map<String, dynamic>>>(

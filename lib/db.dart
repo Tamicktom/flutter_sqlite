@@ -1,40 +1,48 @@
-import 'package:path/path.dart';
+import "package:flutter/material.dart";
+import "package:sqflite/sqflite.dart";
+import "package:path/path.dart";
 
-import 'package:sqflite/sqflite.dart';
+class Inputs extends StatefulWidget {
+  const Inputs({Key? key}): super(key:key);
 
-class MyDb {
-  late Database db;
-  Future open() async {
-    // Get a location using getDatabasesPath
-    String databasesPath = await getDatabasesPath();
-    String path = join(databasesPath, 'demo.db');
-    //join is from path package
-    print(path);
-    db = await openDatabase(path, version: 1,
-        onCreate: (Database db, int version) async {
-      // When creating the db, create the table
-      await db.execute(''' 
-                  CREATE TABLE IF NOT EXISTS products (  
-                        id primary key, 
-                        name varchar(255) not null,
-                        roll_no int not null,
-                        price int not null,
-                        quantity int not null,
-                    ); 
-                    //create more table here 
-                ''');
-      //table students will be created if there is no table 'students'
-      print("Tabela Criada com Sucesso!");
-    });
-  }
+  @override
+  _Inputs createState()=> _Inputs();
+}
 
-  Future<Map<dynamic, dynamic>?> getProduct(int rollno) async {
-    List<Map> maps =
-        await db.query('products', where: 'roll_no = ?', whereArgs: [rollno]);
-    //getting student data with roll no.
-    if (maps.isNotEmpty) {
-      return maps.first;
-    }
-    return null;
+class _Inputs extends State<Inputs> {
+  TextEditingController nameController = TextEditingController();
+  TextEditingController ageController = TextEditingController();
+
+  @override
+  Widget build(BuildContext context){
+    return Column(
+      children: [
+        TextField(
+              controller: nameController,
+              decoration: const InputDecoration(labelText: 'Name'),
+            ),
+            const SizedBox(height: 16.0),
+            TextField(
+              controller: ageController,
+              decoration: const InputDecoration(labelText: 'Age'),
+              keyboardType: TextInputType.number,
+            ),
+            const SizedBox(height: 16.0),
+            ElevatedButton(
+              onPressed: () {
+                final name = nameController.text;
+                final age = int.tryParse(ageController.text) ?? 0;
+                print(name)
+                print(age)
+                // database.then((db) => _insertUser(db, name, age));
+                setState(() {
+                  nameController.clear();
+                  ageController.clear();
+                });
+              },
+              child: const Text('Add User'),
+            ),
+      ],
+    );
   }
 }
