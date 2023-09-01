@@ -103,11 +103,21 @@ class _HomeScreenState extends State<HomeScreen> {
                         final userName = user['name'];
                         final userAge = user['age'];
                         final userGender = user['gender'] ?? '';
+                        //add delete button
                         return ListTile(
                           title: Text(userName),
                           subtitle: Text('Age: $userAge, Gender: $userGender'),
-                          trailing: EditButton(
-                            id: user['id'],
+                          trailing: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              EditButton(id: user['id']),
+                              const SizedBox(width: 8.0),
+                              DeleteButton(
+                                  id: user['id'],
+                                  onDelete: () {
+                                    setState(() {});
+                                  }),
+                            ],
                           ),
                         );
                       },
@@ -144,6 +154,30 @@ class EditButton extends StatelessWidget {
         );
       },
       child: const Text('Edit'),
+    );
+  }
+}
+
+class DeleteButton extends StatelessWidget {
+  final int id;
+  final Function? onDelete;
+
+  const DeleteButton({
+    required this.id,
+    this.onDelete,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return ElevatedButton(
+      onPressed: () async {
+        final dbHelper = DatabaseHelper();
+        await dbHelper.deleteUser(id);
+        if (onDelete != null) {
+          onDelete!();
+        }
+      },
+      child: const Text('Delete'),
     );
   }
 }

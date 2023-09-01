@@ -102,4 +102,10 @@ class DatabaseHelper {
     };
     return await db.update('users', values, where: 'id = ?', whereArgs: [id]);
   }
+
+  //delete user
+  Future<int> deleteUser(int id) async {
+    final db = await database;
+    return await db.delete('users', where: 'id = ?', whereArgs: [id]);
+  }
 }

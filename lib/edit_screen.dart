@@ -76,7 +76,7 @@ class _EditScreenState extends State<EditScreen> {
                 final updatedAge = int.tryParse(ageController.text) ?? 0;
                 await dbHelper.updateUser(
                     widget.id, updatedName, updatedAge, selectedGender);
-                Navigator.pop(context); // Navigate back after updating
+                Navigator.pop(context, true); // Navigate back after updating
               },
               child: const Text('Save'),
             ),
