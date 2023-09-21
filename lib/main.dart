@@ -30,6 +30,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   TextEditingController nameController = TextEditingController();
   TextEditingController ageController = TextEditingController();
+  TextEditingController imageController = TextEditingController();
   String gender = 'Male'; // Default gender value
 
   @override
@@ -54,6 +55,11 @@ class _HomeScreenState extends State<HomeScreen> {
               keyboardType: TextInputType.number,
             ),
             const SizedBox(height: 16.0),
+            TextField(
+              controller: imageController,
+              decoration: const InputDecoration(labelText: 'Image'),
+            ),
+            const SizedBox(height: 16.0),
             DropdownButton<String>(
               value: gender,
               onChanged: (String? newValue) {
@@ -74,7 +80,9 @@ class _HomeScreenState extends State<HomeScreen> {
               onPressed: () async {
                 final name = nameController.text;
                 final age = int.tryParse(ageController.text) ?? 0;
-                final result = await dbHelper.insertUser(name, age, gender);
+                final imageUrl = imageController.text;
+                final result =
+                    await dbHelper.insertUser(name, age, gender, imageUrl);
                 if (result != null && result > 0) {
                   setState(() {
                     nameController.clear();
@@ -103,6 +111,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         final userName = user['name'];
                         final userAge = user['age'];
                         final userGender = user['gender'] ?? '';
+                        final userImage = user['image'] ?? '';
                         //add delete button
                         return ListTile(
                           title: Text(userName),
@@ -110,6 +119,10 @@ class _HomeScreenState extends State<HomeScreen> {
                           trailing: Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
+                              if (userImage.isNotEmpty)
+                                CircleAvatar(
+                                  backgroundImage: NetworkImage(userImage),
+                                ),
                               EditButton(id: user['id']),
                               const SizedBox(width: 8.0),
                               DeleteButton(

@@ -17,6 +17,7 @@ class _EditScreenState extends State<EditScreen> {
   late String selectedGender = 'Male'; // Initialize with an empty string
   TextEditingController nameController = TextEditingController();
   TextEditingController ageController = TextEditingController();
+  TextEditingController imageController = TextEditingController();
 
   @override
   void initState() {
@@ -31,6 +32,7 @@ class _EditScreenState extends State<EditScreen> {
     selectedGender = user['gender'] ?? '';
     nameController.text = name;
     ageController.text = age.toString();
+    imageController.text = user['image'] ?? '';
   }
 
   @override
@@ -43,6 +45,12 @@ class _EditScreenState extends State<EditScreen> {
         padding: const EdgeInsets.all(16.0),
         child: Column(
           children: [
+            //render image avatar
+            CircleAvatar(
+              radius: 100.0,
+              backgroundImage: NetworkImage(imageController.text),
+            ),
+            const SizedBox(height: 16.0),
             TextField(
               controller: nameController,
               decoration: const InputDecoration(labelText: 'Name'),
@@ -52,6 +60,11 @@ class _EditScreenState extends State<EditScreen> {
               controller: ageController,
               decoration: const InputDecoration(labelText: 'Age'),
               keyboardType: TextInputType.number,
+            ),
+            const SizedBox(height: 16.0),
+            TextField(
+              controller: imageController,
+              decoration: const InputDecoration(labelText: 'Image'),
             ),
             const SizedBox(height: 16.0),
             DropdownButton<String>(
@@ -74,8 +87,9 @@ class _EditScreenState extends State<EditScreen> {
               onPressed: () async {
                 final updatedName = nameController.text;
                 final updatedAge = int.tryParse(ageController.text) ?? 0;
-                await dbHelper.updateUser(
-                    widget.id, updatedName, updatedAge, selectedGender);
+                final imageUrl = imageController.text;
+                await dbHelper.updateUser(widget.id, updatedName, updatedAge,
+                    selectedGender, imageUrl);
                 Navigator.pop(context, true); // Navigate back after updating
               },
               child: const Text('Save'),

@@ -3,36 +3,6 @@ import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
 
 class DatabaseHelper {
-  // late Database _database;
-
-  // DatabaseHelper() {
-  //   initDatabase();
-  // }
-
-  // Future<void> initDatabase() async {
-  //   String databasesPath = await getDatabasesPath();
-  //   String dbPath = join(databasesPath, 'my_database.db');
-
-  //   _database = await openDatabase(
-  //     dbPath,
-  //     version: 3, // Increase the version to trigger migration
-  //     onCreate: _onCreate,
-  //     onUpgrade: _onUpgrade, // Call the onUpgrade method
-  //   );
-  // }
-
-  // Future<Database> _openDatabase() async {
-  //   String databasesPath = await getDatabasesPath();
-  //   String dbPath = join(databasesPath, 'my_database.db');
-
-  //   return await openDatabase(
-  //     dbPath,
-  //     version: 3, // Increase the version to trigger migration
-  //     onCreate: _onCreate,
-  //     onUpgrade: _onUpgrade, // Call the onUpgrade method
-  //   );
-  // }
-
   Database? _database;
 
   Future<Database> get database async {
@@ -48,7 +18,7 @@ class DatabaseHelper {
 
     return await openDatabase(
       dbPath,
-      version: 3,
+      version: 5,
       onCreate: _onCreate,
       onUpgrade: _onUpgrade,
     );
@@ -60,7 +30,8 @@ class DatabaseHelper {
         id INTEGER PRIMARY KEY,
         name TEXT,
         age INTEGER,
-        gender TEXT
+        gender TEXT,
+        image TEXT
       )
     ''');
   }
@@ -71,11 +42,13 @@ class DatabaseHelper {
     }
   }
 
-  Future<int> insertUser(String name, int age, String gender) async {
+  Future<int> insertUser(
+      String name, int age, String gender, String image) async {
     final Map<String, dynamic> values = {
       'name': name,
       'age': age,
       'gender': gender,
+      'image': image
     };
     final db = await database;
     return await db.insert('users', values);
@@ -93,12 +66,14 @@ class DatabaseHelper {
     return await db.query('users');
   }
 
-  Future<int> updateUser(int id, String name, int age, String gender) async {
+  Future<int> updateUser(
+      int id, String name, int age, String gender, String image) async {
     final db = await database;
     final Map<String, dynamic> values = {
       'name': name,
       'age': age,
       'gender': gender,
+      'image': image
     };
     return await db.update('users', values, where: 'id = ?', whereArgs: [id]);
   }
