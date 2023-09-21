@@ -1,11 +1,7 @@
-//* Libraries imports
 import 'package:flutter/material.dart';
-import 'package:sqflite/sqflite.dart';
-import 'package:path/path.dart';
-
-//* Components imports
-import "./drawer.dart";
-import "db.dart";
+import 'drawer.dart';
+import 'db.dart';
+import "./edit_screen.dart";
 
 void main() => runApp(const MyApp());
 
@@ -14,9 +10,10 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const MaterialApp(
+    return MaterialApp(
+      theme: ThemeData(primarySwatch: Colors.deepPurple),
       title: 'SQLite in Flutter',
-      home: HomeScreen(),
+      home: const HomeScreen(),
     );
   }
 }
@@ -29,46 +26,12 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  late Future<Database> database;
+  final DatabaseHelper dbHelper = DatabaseHelper();
 
-  @override
-  void initState() {
-    super.initState();
-    // Open the database when the app starts
-    database = _openDatabase();
-  }
-
-  Future<Database> _openDatabase() async {
-    // Get a location using getDatabasesPath
-    String databasesPath = await getDatabasesPath();
-    String dbPath = join(databasesPath, 'my_database.db');
-
-    // Open the database with the path and a version
-    return await openDatabase(dbPath, version: 1, onCreate: _onCreate);
-  }
-
-  Future<void> _onCreate(Database db, int version) async {
-    // Create the table
-    await db.execute('''
-      CREATE TABLE IF NOT EXISTS users(
-        id INTEGER PRIMARY KEY,
-        name TEXT,
-        age INTEGER
-      )
-    ''');
-  }
-
-  Future<void> _insertUser(Database db, String name, int age) async {
-    await db.insert(
-      'users',
-      {'name': name, 'age': age},
-      conflictAlgorithm: ConflictAlgorithm.replace,
-    );
-  }
-
-  Future<List<Map<String, dynamic>>> _getUsers(Database db) async {
-    return await db.query('users');
-  }
+  TextEditingController nameController = TextEditingController();
+  TextEditingController ageController = TextEditingController();
+  TextEditingController imageController = TextEditingController();
+  String gender = 'Male'; // Default gender value
 
   @override
   Widget build(BuildContext context) {
@@ -81,11 +44,59 @@ class _HomeScreenState extends State<HomeScreen> {
         padding: const EdgeInsets.all(8.0),
         child: Column(
           children: [
-            const Inputs(),
+            TextField(
+              controller: nameController,
+              decoration: const InputDecoration(labelText: 'Name'),
+            ),
+            const SizedBox(height: 16.0),
+            TextField(
+              controller: ageController,
+              decoration: const InputDecoration(labelText: 'Age'),
+              keyboardType: TextInputType.number,
+            ),
+            const SizedBox(height: 16.0),
+            TextField(
+              controller: imageController,
+              decoration: const InputDecoration(labelText: 'Image'),
+            ),
+            const SizedBox(height: 16.0),
+            DropdownButton<String>(
+              value: gender,
+              onChanged: (String? newValue) {
+                setState(() {
+                  gender = newValue!;
+                });
+              },
+              items: <String>['Male', 'Female', 'Other']
+                  .map<DropdownMenuItem<String>>((String value) {
+                return DropdownMenuItem<String>(
+                  value: value,
+                  child: Text(value),
+                );
+              }).toList(),
+            ),
+            const SizedBox(height: 16.0),
+            ElevatedButton(
+              onPressed: () async {
+                final name = nameController.text;
+                final age = int.tryParse(ageController.text) ?? 0;
+                final imageUrl = imageController.text;
+                final result =
+                    await dbHelper.insertUser(name, age, gender, imageUrl);
+                if (result != null && result > 0) {
+                  setState(() {
+                    nameController.clear();
+                    ageController.clear();
+                    gender = 'Male';
+                  });
+                }
+              },
+              child: const Text('Add User'),
+            ),
             const SizedBox(height: 8.0),
             Expanded(
               child: FutureBuilder<List<Map<String, dynamic>>>(
-                future: database.then(_getUsers),
+                future: dbHelper.getUsers(),
                 builder: (context, snapshot) {
                   if (snapshot.connectionState == ConnectionState.waiting) {
                     return const CircularProgressIndicator();
@@ -96,9 +107,31 @@ class _HomeScreenState extends State<HomeScreen> {
                     return ListView.builder(
                       itemCount: users.length,
                       itemBuilder: (context, index) {
+                        final user = users[index];
+                        final userName = user['name'];
+                        final userAge = user['age'];
+                        final userGender = user['gender'] ?? '';
+                        final userImage = user['image'] ?? '';
+                        //add delete button
                         return ListTile(
-                          title: Text(users[index]['name']),
-                          subtitle: Text('Age: ${users[index]['age']}'),
+                          title: Text(userName),
+                          subtitle: Text('Age: $userAge, Gender: $userGender'),
+                          trailing: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              if (userImage.isNotEmpty)
+                                CircleAvatar(
+                                  backgroundImage: NetworkImage(userImage),
+                                ),
+                              EditButton(id: user['id']),
+                              const SizedBox(width: 8.0),
+                              DeleteButton(
+                                  id: user['id'],
+                                  onDelete: () {
+                                    setState(() {});
+                                  }),
+                            ],
+                          ),
                         );
                       },
                     );
@@ -109,6 +142,55 @@ class _HomeScreenState extends State<HomeScreen> {
           ],
         ),
       ),
+    );
+  }
+}
+
+class EditButton extends StatelessWidget {
+  final int id;
+
+  const EditButton({
+    required this.id,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return ElevatedButton(
+      onPressed: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => EditScreen(
+              id: id,
+            ),
+          ),
+        );
+      },
+      child: const Text('Edit'),
+    );
+  }
+}
+
+class DeleteButton extends StatelessWidget {
+  final int id;
+  final Function? onDelete;
+
+  const DeleteButton({
+    required this.id,
+    this.onDelete,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return ElevatedButton(
+      onPressed: () async {
+        final dbHelper = DatabaseHelper();
+        await dbHelper.deleteUser(id);
+        if (onDelete != null) {
+          onDelete!();
+        }
+      },
+      child: const Text('Delete'),
     );
   }
 }
