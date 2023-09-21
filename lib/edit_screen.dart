@@ -47,7 +47,6 @@ class _EditScreenState extends State<EditScreen> {
           children: [
             //render image avatar
             CircleAvatar(
-              radius: 100.0,
               backgroundImage: NetworkImage(imageController.text),
             ),
             const SizedBox(height: 16.0),

@@ -1,6 +1,7 @@
 // db.dart
 import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 class DatabaseHelper {
   Database? _database;
@@ -82,5 +83,48 @@ class DatabaseHelper {
   Future<int> deleteUser(int id) async {
     final db = await database;
     return await db.delete('users', where: 'id = ?', whereArgs: [id]);
+  }
+}
+
+class FirestoreHelper {
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+
+  Future<void> addUser(
+      String name, int age, String gender, String image) async {
+    await _firestore.collection('users').add({
+      'name': name,
+      'age': age,
+      'gender': gender,
+      'image': image,
+    });
+  }
+
+  Future<Map<String, dynamic>> getUser(String documentId) async {
+    DocumentSnapshot userSnapshot =
+        await _firestore.collection('users').doc(documentId).get();
+
+    return userSnapshot.data() as Map<String, dynamic>;
+  }
+
+  Future<List<Map<String, dynamic>>> getUsers() async {
+    QuerySnapshot usersSnapshot = await _firestore.collection('users').get();
+
+    return usersSnapshot.docs
+        .map((doc) => doc.data() as Map<String, dynamic>)
+        .toList();
+  }
+
+  Future<void> updateUser(String documentId, String name, int age,
+      String gender, String image) async {
+    await _firestore.collection('users').doc(documentId).update({
+      'name': name,
+      'age': age,
+      'gender': gender,
+      'image': image,
+    });
+  }
+
+  Future<void> deleteUser(String documentId) async {
+    await _firestore.collection('users').doc(documentId).delete();
   }
 }
